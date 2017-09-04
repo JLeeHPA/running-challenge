@@ -164,7 +164,9 @@ Create the table to be consistant with the information below:
 Briefly, how did you approach this problem and create the table?  Did you generate code using the command line?  If so, copy and past the copy in the space below:
 
 **---Your Answer Start---**
-
+  ```bash
+  bin/rails generate scaffold RunRecord date:date difficulty:integer distance:float time:time pace:time notes:string
+  ```
 **---Your Answer End---**
 
 **--------------------------------------------------**
