@@ -268,7 +268,9 @@ The following code requires date, difficulty, distance, and time:
   params[:run_record].require([:date, :difficulty, :distance, :time]) #requires :date, :difficulty, :distance, :time to be as an embedded hash in :run_record
   params.require(:run_record).permit(:date, :difficulty, :distance, :time, :notes) #permits the preceding required parameters to be a part of the :run_record object
   ```
-  
+
+The problem with adding `:distance` or `:time` to the model is that the parameters are processed in the model after the controller. If :pace is calculated in the controller and `:time` is missing, then Ruby will throw an error because `:distance` is being divided by a `nil` value. Therefore, `:time` at least needs to validated in the controller stage.
+
 Now, if either pace is non-empty or any of the required fields are missing, an error is raised to the development environment. For example, an error will return if:
 
   ```bash
