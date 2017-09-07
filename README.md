@@ -164,9 +164,76 @@ Create the table to be consistant with the information below:
 Briefly, how did you approach this problem and create the table?  Did you generate code using the command line?  If so, copy and past the copy in the space below:
 
 **---Your Answer Start---**
+
+First, I generated a scafford of the RunRecord controller:
   ```bash
-  bin/rails generate scaffold RunRecord date:date difficulty:integer distance:float time:time pace:time notes:string
+  bin/rails generate scaffold RunRecord date:date difficulty:integer distance:float time:float pace:float notes:string
   ```
+
+Opening up app/controllers/run_records_controller.rb, I added the following line under the instantiation of the RunRecord object:
+  ```ruby
+  @run_record.pace = (@run_record.time/@run_record.distance).round(2)
+  ```
+  
+To permit certain parameters, I also modified the private `run_record_params` method:
+  ```ruby
+  params.require(:run_record).permit(:date, :difficulty, :distance, :time, :notes)
+  ```
+  
+In this case, I removed the `:pace` key from `run_record`.
+
+I created a new shell script (`scripts/create-run_record.sh`) with the following text:
+  ```bash
+  #!/bin/bash
+  
+  API="${API_ORIGIN:-http://localhost:4741}"
+  URL_PATH="/run_records"
+  curl "${API}${URL_PATH}" \
+    --include \
+    --request POST \
+    --header "Content-Type: application/json" \
+    --header "Authorization: Token token=$TOKEN" \
+    --data '{
+      "run_record": {
+        "date": "'"${DATE}"'",
+        "difficulty": "'"${DIFFICULTY}"'",
+        "distance": "'"${DISTANCE}"'",
+        "time": "'"${TIME}"'",
+        "pace": "'"${PACE}"'",
+        "notes": "'"${NOTES}"'"
+      }
+    }'
+  
+  echo
+  ```
+
+Going back to the command line, I had to set attributes individually because I am running on Windows:
+  ```bash
+  set TOKEN=my_token
+  set DATE=2017-01-01
+  set DIFFICULTY=4
+  set DISTANCE=1.5
+  set TIME=15
+  set PACE=9
+  set NOTES=No notes for this day
+  sh scripts/create-run_record.sh
+  ```
+  
+I added a PACE value just to test and make sure that the `.permit` method was working properly.
+
+
+On the server shell, I get a message:
+  ```bash
+  Unpermitted parameter: pace
+  ```
+  
+which tells me my `.permit` method is working. In the shell, I also get the following output as a result of my curl request:
+
+  ```bash
+  {"run_record":{"id":1,"date":"2017-01-01","difficulty":4,"distance":1.5,"time":15.0,"pace":10.0,"notes":"No notes for this day"}}
+  ```
+  
+This tells me that what I entered has been recorded in the database. The `ID` parameter tells me the record number for this particular user in the database.
 **---Your Answer End---**
 
 **--------------------------------------------------**

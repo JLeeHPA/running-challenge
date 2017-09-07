@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 #
 source 'https://rubygems.org'
-ruby '2.3.4'
+ruby '2.3.3'
 
 gem 'active_model_serializers', '~> 0.10.0'
 gem 'bcrypt', '~> 3.1.11'
@@ -9,6 +9,7 @@ gem 'pg'
 gem 'puma', '~> 3.0'
 gem 'rack-cors', require: 'rack/cors'
 gem 'rails', '~> 5.0.1'
+gem 'tzinfo-data'
 
 group :development, :test do
   gem 'byebug', platform: :mri

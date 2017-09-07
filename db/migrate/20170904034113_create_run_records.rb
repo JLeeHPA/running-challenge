@@ -4,8 +4,8 @@ class CreateRunRecords < ActiveRecord::Migration[5.0]
       t.date :date
       t.integer :difficulty
       t.float :distance
-      t.time :time
-      t.time :pace
+      t.float :time
+      t.float :pace
       t.string :notes
 
       t.timestamps

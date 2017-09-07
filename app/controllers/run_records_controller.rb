@@ -16,6 +16,7 @@ class RunRecordsController < ApplicationController
   # POST /run_records
   def create
     @run_record = RunRecord.new(run_record_params)
+    @run_record.pace = (@run_record.time/@run_record.distance).round(2)
 
     if @run_record.save
       render json: @run_record, status: :created, location: @run_record
@@ -46,6 +47,6 @@ class RunRecordsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def run_record_params
-      params.require(:run_record).permit(:date, :difficulty, :distance, :time, :pace, :notes)
+      params.require(:run_record).permit(:date, :difficulty, :distance, :time, :notes)
     end
 end
