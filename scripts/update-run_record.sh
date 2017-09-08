@@ -2,19 +2,15 @@
 
 API="${API_ORIGIN:-http://localhost:4741}"
 URL_PATH="/run_records"
-curl "${API}${URL_PATH}" \
+curl "${API}${URL_PATH}/${ID}" \
   --include \
-  --request POST \
+  --request PATCH \
+  --header "Authorization: Token token=${TOKEN}" \
   --header "Content-Type: application/json" \
-  --header "Authorization: Token token=$TOKEN" \
   --data '{
     "run_record": {
-      "date": "'"${DATE}"'",
-      "difficulty": "'"${DIFFICULTY}"'",
       "distance": "'"${DISTANCE}"'",
       "time": "'"${TIME}"'",
-      "pace": "'"${PACE}"'",
-      "notes": "'"${NOTES}"'",
       "finished": "'"${FINISHED}"'"
     }
   }'

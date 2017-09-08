@@ -1,10 +1,6 @@
 class RunRecord < ApplicationRecord
 	validates :difficulty, inclusion: { in: 1..10 }, numericality: { only_integer: true }
-	validate :date_less_than_today
-
-	def date_less_than_today
-		if (:date > Date.today.to_s)
-			errors.add(:date, "can't be in the future")
-		end
+	validates_each :date do |record, attr, value|
+		record.errors.add(attr, 'date must be before today or today') if value > Date.today
 	end
 end

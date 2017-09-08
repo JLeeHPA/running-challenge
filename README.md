@@ -174,7 +174,9 @@ Opening up app/controllers/run_records_controller.rb, I added the following line
   ```ruby
   @run_record.pace = (@run_record.time/@run_record.distance).round(2)
   ```
-  
+
+This generates a value for `pace`.
+
 To permit certain parameters, I also modified the private `run_record_params` method:
   ```ruby
   params.require(:run_record).permit(:date, :difficulty, :distance, :time, :notes)
@@ -319,6 +321,36 @@ Next, we need to add a validation to the existing table.  Create a validation fo
 
 **---Your Answer Start---**
 
+Going into the `run_record.rb` model, I added the following lines of code:
+
+  ```ruby
+  validates :difficulty, inclusion: { in: 1..10 }, numericality: { only_integer: true }
+  validates_each :date do |record, attr, value|
+    record.errors.add(attr, 'date must be before today or today') if value > Date.today
+  end
+  ```
+
+The line `validates :difficulty, inclusion: { in: 1..10 }, numericality: { only_integer: true }` ensures that `:difficulty` is both an integer and within the range of 1-10. The `numericality` portion is a bit redunant because the difficulty input was already scaffolded as a variable and transferred to the database in the migration as an integer. This was just something I added so that I can learn and test out all the different options to validate a model.
+
+The following lines:
+
+  ```ruby
+  validates_each :date do |record, attr, value|
+    record.errors.add(attr, 'date must be before today or today') if value > Date.today
+  end
+  ```
+
+ensure that the value of `:date` is not equal to today. It breaks `:date` down into three components: its record, its attributes, and its value. I only need to compare the value to the Ruby generated `Date.today` object. I tried many different ways and this was the only way that worked. If you can let me know if a better way to do this, I appreciate it.
+
+To test this, I changed:
+
+  ```bash
+  set DATE=2018-01-01
+  set DIFFICULTY=20
+  ```
+  
+And ran the `scripts/create-run_record.rb` script. Both inputs generate errors as expected. Both inputs set to appropriate values allow a record to pass, as expected.
+
 **---Your Answer End---**
 
 **--------------------------------------------------**
@@ -330,6 +362,14 @@ We want the average mile pace to be stored in the table without the user having 
 Briefly, how did you approach this problem and create the table?  Did you generate code using the command line?  If so, copy and past the copy in the space below:
 
 **---Your Answer Start---**
+
+This was covered in my results for Question #1. I added this line to my `run_records_controller.rb`:
+
+  ```ruby
+  @run_record.pace = (@run_record.time/@run_record.distance).round(2)
+  ```
+  
+This creates a value for `pace` from `time` and `distance`. Because I do this in the controller, `time` has to be validated in the controller stage, or else a "divided by nil" error will occur. To keep things consistent, I validated the presence/absence of all input variables in the controller stage and validated their values (see Question #3) in the model stage.
 
 **---Your Answer End---**
 
@@ -344,6 +384,37 @@ Briefly, how did you approach this problem and create the table?  Did you genera
 
 **---Your Answer Start---**
 
+I changed the `update` method in `run_records_controller.rb` to reflect the following:
+
+  ```ruby
+  def update
+    @run_record = RunRecord.find(params[:id])
+    params[:run_record][:pace] = (params[:run_record][:time].to_f/params[:run_record][:distance].to_f).round(2)
+
+    if @run_record.update(params.require(:run_record).permit(:distance, :time, :pace))
+      render json: @run_record
+    else
+      render json: @run_record.errors, status: :unprocessable_entity
+    end
+  end
+  ```
+  
+The line `@run_record = RunRecord.find(params[:id])` selects the record indicated by the supplied `ID` value.
+  
+`params[:run_record][:pace] = (params[:run_record][:time].to_f/params[:run_record][:distance].to_f).round(2)` calculates a new key in `params` called `pace` from the values of `time` and `distance`.
+  
+Since the user is only updating `time` and `distance`, if the other inputs are nil, Rails will throw an error. Thus, I had to permit only the parameters that have been imputed/modified for this particular update using this `params.require(:run_record).permit(:distance, :time, :pace)`.
+  
+To test, I changed:
+  
+  ```bash
+  set ID=2
+  set DISTANCE=3
+  set TIME=26
+  ```
+  
+on a record with `ID` equal to 2. The code ran appropriately.
+
 **---Your Answer End---**
 
 **--------------------------------------------------**
@@ -356,6 +427,15 @@ Now, we decide that we need to add a column to the table.  Add a column "Finishe
 Briefly, how did you approach this problem and create the table?  Did you generate code using the command line?  If so, copy and past the copy in the space below:
 
 **---Your Answer Start---**
+
+First, I had Rails generate a new migration:
+
+  ```bash
+  rails generate migration add_finished_to_run_records finished:bool
+  rake db:migrate
+  ```
+  
+This creates a change in the original migration and allows us to migrate everything over to reflect the new change.
 
 **---Your Answer End---**
 
