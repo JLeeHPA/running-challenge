@@ -14,7 +14,6 @@ curl "${API}${URL_PATH}" \
       "distance": "'"${DISTANCE}"'",
       "time": "'"${TIME}"'",
       "pace": "'"${PACE}"'",
-      "notes": "'"${NOTES}"'",
       "finished": "'"${FINISHED}"'"
     }
   }'

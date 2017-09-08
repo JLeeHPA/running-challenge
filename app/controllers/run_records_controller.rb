@@ -4,12 +4,14 @@ class RunRecordsController < ApplicationController
   # GET /run_records
   def index
     @run_records = RunRecord.all
+    @run_records = @run_records.where(:finished => true).where("distance >= :distcomp AND pace < :pacecomp", distcomp: 5, pacecomp: 8)
 
     render json: @run_records
   end
 
   # GET /run_records/1
   def show
+    @run_records = @run_records.where(:finished => true).where("distance >= :distcomp AND pace < :pacecomp", distcomp: 5, pacecomp: 8)
     render json: @run_record
   end
 

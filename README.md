@@ -435,7 +435,47 @@ First, I had Rails generate a new migration:
   rake db:migrate
   ```
   
-This creates a change in the original migration and allows us to migrate everything over to reflect the new change.
+This creates a change in the original migration (adds a column) and allows up to update the schema to reflect the new change.
+
+Then, I had to alter the `run_records_params` method in `run_records_controller.rb` to add `:finished` to the list of permitted, but not required variables:
+
+  ```ruby
+  def run_record_params
+    ...
+    params[:run_record].require([:date, :difficulty, :distance, :time])
+    params.require(:run_record).permit(:date, :difficulty, :distance, :time, :notes, :finished)
+  end
+  ```
+  
+I also had to add `:finished` to be one of the update-able inputs:
+
+  ```ruby
+  def update
+    ...
+    
+    if @run_record.update(params.require(:run_record).permit(:distance, :time, :pace, :finished))
+      render json: @run_record
+    else
+      render json: @run_record.errors, status: :unprocessable_entity
+    end
+  end
+  ```
+  
+After that, I had to modify the `run_record_serializer.rb` so that `finished` will show up in a POST/GET call:
+
+  ```ruby
+  class RunRecordSerializer < ActiveModel::Serializer
+    attributes :id, :date, :difficulty, :distance, :time, :pace, :notes, :finished
+  end
+  ```
+
+Then, after adding appropriate curl options to `scripts/create-run_record.sh` and `scripts/update-run_record.rb`, I set a new value:
+
+  ```bash
+  set FINISHED=true
+  ```
+
+and ran the code to get `finished` to be a parameter to be added to the table.
 
 **---Your Answer End---**
 
@@ -447,6 +487,15 @@ Next, we find that no one is using the notes column of the app.  Delete this col
 
 **---Your Answer Start---**
 
+I generated a new migration using the following code:
+
+  ```bash
+  rails generate migration remove_notes_from_run_records notes:string
+  rails db:migrate
+  ```
+  
+Afterwards, I deleted the `:notes` symbol from `run_record_serializer.rb`.
+
 **---Your Answer End---**
 
 **--------------------------------------------------**
@@ -456,6 +505,29 @@ Next, we find that no one is using the notes column of the app.  Delete this col
 Finally, our users tell us that they do not want to receive all the results.  Instead, they only want the data returned of runs they completed.  Make the necessary changes so that only completed runs are returned
 
 **---Your Answer Start---**
+
+I added the following to the `index` method in `run_records_controller.rb`:
+
+  ```ruby
+  def index
+    @run_records = RunRecord.all
+    @run_records = @run_records.where(:finished => true)
+  ...
+  end
+  ```
+  
+This filters out all the `@run_record` values where `:finished` is not `true`. Similiarly, I added the following to the `show` method in `run_records_controller.rb`:
+
+  ```ruby
+  def show
+    @run_records = @run_records.where(:finished => true)
+  ...
+  end
+  ```
+  
+Though if an index is pointed to a record with `:finished` as `false`, then the `show` method returns a `nil` error. Is there a better way to do this?
+
+I tested this by making a few observations that were true for `finished` and a few that were false, and running the `scripts/get-run_records.rb` shell script to see the results.
 
 **---Your Answer End---**
 
@@ -469,6 +541,16 @@ Update your last answer so that only completed runs in which the runner complete
 
 **---Your Answer Start---**
 
+I modified the `.where` methods found in Question #8 to read:
+
+  ```ruby
+  @run_records = @run_records.where(:finished => true).where("distance >= :distcomp AND pace < :pacecomp", distcomp: 5, pacecomp: 8)
+  ```
+  
+in both the `index` and `show` methods. This filters the results again so that all results need to have a distance of greater than or equal to 5 miles and a pace of less than 8 minutes per mile. As per the last question, all results need to be completed runs.
+
+Testing this with a few different distances and pace times indicates that Rails is able to filter the results appropriately.
+
 **---Your Answer End---**
 
 **--------------------------------------------------**
@@ -480,6 +562,31 @@ Update your last answer so that only completed runs in which the runner complete
 Our users tell us that they do not want to receive all the results.  Instead, they only want the data returned of runs they completed.  Make the necessary changes so that only completed runs are returned
 
 **---Your Answer Start---**
+
+same as Question #8.
+
+I added the following to the `index` method in `run_records_controller.rb`:
+
+  ```ruby
+  def index
+    @run_records = RunRecord.all
+    @run_records = @run_records.where(:finished => true)
+  ...
+  end
+  ```
+  
+This filters out all the `@run_record` values where `:finished` is not `true`. Similiarly, I added the following to the `show` method in `run_records_controller.rb`:
+
+  ```ruby
+  def show
+    @run_records = @run_records.where(:finished => true)
+  ...
+  end
+  ```
+  
+Though if an index is pointed to a record with `:finished` as `false`, then the `show` method returns a `nil` error. Is there a better way to do this?
+
+I tested this by making a few observations that were true for `finished` and a few that were false, and running the `scripts/get-run_records.rb` shell script to see the results.
 
 **---Your Answer End---**
 
