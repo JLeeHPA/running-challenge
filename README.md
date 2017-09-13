@@ -181,13 +181,13 @@ To permit certain parameters, I also modified the private `run_record_params` me
   ```ruby
   params.require(:run_record).permit(:date, :difficulty, :distance, :time, :notes)
   ```
-  
+
 In this case, I removed the `:pace` key from `run_record`.
 
 I created a new shell script (`scripts/create-run_record.sh`) with the following text:
   ```bash
   #!/bin/bash
-  
+
   API="${API_ORIGIN:-http://localhost:4741}"
   URL_PATH="/run_records"
   curl "${API}${URL_PATH}" \
@@ -205,7 +205,7 @@ I created a new shell script (`scripts/create-run_record.sh`) with the following
         "notes": "'"${NOTES}"'"
       }
     }'
-  
+
   echo
   ```
 
@@ -220,7 +220,7 @@ Going back to the command line, I had to set attributes individually because I a
   set NOTES=No notes for this day
   sh scripts/create-run_record.sh
   ```
-  
+
 I added a PACE value just to test and make sure that the `.permit` method was working properly.
 
 
@@ -228,13 +228,13 @@ On the server shell, I get a message:
   ```bash
   Unpermitted parameter: pace
   ```
-  
+
 which tells me my `.permit` method is working. In the shell, I also get the following output as a result of my curl request:
 
   ```bash
   {"run_record":{"id":1,"date":"2017-01-01","difficulty":4,"distance":1.5,"time":15.0,"pace":10.0,"notes":"No notes for this day"}}
   ```
-  
+
 This tells me that what I entered has been recorded in the database. The `ID` parameter tells me the record number for this particular user in the database.
 
 **---Your Answer End---**
@@ -242,6 +242,12 @@ This tells me that what I entered has been recorded in the database. The `ID` pa
 **--------------------------------------------------**
 **--------STOP - Add and Commit Your Work-----------**
 **--------------------------------------------------**
+
+### Steve Solution Comments
+
+You were correct in using a scaffold.  The only things that is missing from the scaffold is a user reference, which can be included in the scaffold by adding user:references.
+
+user:references creates a column in the RunRecord table which accepts an integer and the value will be that of the current user.  This ensures that only the user with a specific user ID (i.e. the current user) is able to access the data.
 
 ### Question 2:
 Next, we decided that we want to make certain entries optional, some required, and some not allowed.  Please require the user to enter the date, difficulty, distance, and time of a given run.  Allow users to enter notes if they choose, but make this optional.  Finally, do not allow a user to submit their pace
@@ -261,11 +267,11 @@ I added the following section to the `run_record_params` method in `run_records_
     ActionController::Parameters.action_on_unpermitted_parameters = :log
   end
   ```
-  
+
 This will cause an exception to be raised if `pace` is non-empty, and no exception to be raised if either `pace` is left blank (has value of `[""]`) or `pace` was not included in the curl script (has value of `[nil]`).
 
 The following code requires date, difficulty, distance, and time:
- 
+
   ```ruby
   params[:run_record].require([:date, :difficulty, :distance, :time]) #requires :date, :difficulty, :distance, :time to be as an embedded hash in :run_record
   params.require(:run_record).permit(:date, :difficulty, :distance, :time, :notes) #permits the preceding required parameters to be a part of the :run_record object
@@ -278,18 +284,18 @@ Now, if either pace is non-empty or any of the required fields are missing, an e
   ```bash
   set PACE=20
   ```
-  
+
 but an error will not return if:
 
   ```bash
   set PACE=
   ```
-  
+
 or if we change the curl script `create-run_record.sh` to be:
 
   ```bash
   #!/bin/bash
-  
+
   API="${API_ORIGIN:-http://localhost:4741}"
   URL_PATH="/run_records"
   curl "${API}${URL_PATH}" \
@@ -306,7 +312,7 @@ or if we change the curl script `create-run_record.sh` to be:
         "notes": "'"${NOTES}"'"
       }
     }'
-  
+
   echo
   ```
 
@@ -315,6 +321,39 @@ or if we change the curl script `create-run_record.sh` to be:
 **--------------------------------------------------**
 **--------STOP - Add and Commit Your Work-----------**
 **--------------------------------------------------**
+
+### Steve Comments
+
+***
+
+You took an interesting approach to reject pace.  Probably the easiest way to accomplish the same goal is simply to update the permitted params in the run_records_controller.
+
+If you look at the examples_controller, you will see:
+
+```
+def example_params
+  params.require(:example).permit(:text, :bool)
+end
+```
+
+This method permits the user to submit both text and bool data.  However, if you wanted the user to not be able to submit :text, you would simply remove this from the method and have:
+
+```ruby
+def example_params
+  params.require(:example).permit(:text, :bool)
+end
+```
+
+By default, if any other params are entered, the controller rejects all submitted values and an error is thrown.  Therefore, it appears that while your way works, it is easier to utilize the permitted params.
+
+### Requiring Values
+
+In terms of requiring something to be entered, this can best be accomplished using the model.  In the run_records model, you would include:
+
+```ruby
+# /models/run_record
+validates_presence_of :date, :difficulty, :distance, :time
+```
 
 ### Question 3:
 Next, we need to add a validation to the existing table.  Create a validation for difficulty that only accepts submissions that are integers between 1 and 10.  Also, create a validation to make sure that a person has not submitted a future date.
@@ -348,7 +387,7 @@ To test this, I changed:
   set DATE=2018-01-01
   set DIFFICULTY=20
   ```
-  
+
 And ran the `scripts/create-run_record.rb` script. Both inputs generate errors as expected. Both inputs set to appropriate values allow a record to pass, as expected.
 
 **---Your Answer End---**
@@ -368,7 +407,7 @@ This was covered in my results for Question #1. I added this line to my `run_rec
   ```ruby
   @run_record.pace = (@run_record.time/@run_record.distance).round(2)
   ```
-  
+
 This creates a value for `pace` from `time` and `distance`. Because I do this in the controller, `time` has to be validated in the controller stage, or else a "divided by nil" error will occur. To keep things consistent, I validated the presence/absence of all input variables in the controller stage and validated their values (see Question #3) in the model stage.
 
 **---Your Answer End---**
@@ -376,6 +415,51 @@ This creates a value for `pace` from `time` and `distance`. Because I do this in
 **--------------------------------------------------**
 **--------STOP - Add and Commit Your Work-----------**
 **--------------------------------------------------**
+
+# COMMENTS TO QUESTION 4:
+
+You did a good job tackling this problem. My only recommendation is how you handled the conditional.
+
+First, you already defined the run_record you are updating by having the following code
+
+```ruby
+# i.e.
+def set_run_record
+  @run_record = RunRecord.find(params[:id])
+end
+```
+
+First, simplify the run_record_params to the following:
+
+```ruby
+def run_record_params
+  params.require(:run_record).permit(:date, :difficulty, :distance, :time)
+end
+```
+
+Then, the update method can be as follows:
+
+```ruby
+def update
+  # If the params include distance (i.e. the user is updating distance), then distance is assigned this value.  If the user is not updating this value (i.e. the params are set to nil), then the distance will be equal to whatever the  user previously submitted (i.e. what is already stored in the run_record)
+  distance = run_record_params['distance'].to_f || @run_record.distance
+  time = run_record_params['time'].to_f || @run_record.time
+
+  #Set the pace param to time / distance
+  # Note: If the 'pace' param does not exist, writing it in this manner will add the param.
+  run_record_params['pace'] = time / distance
+
+  # Finally, the update method executes
+    if @run_record.update(run_record_params)
+      render json: @run_record
+    else
+      render json: @run_record.errors, status: :unprocessable_entity
+    end
+  else
+    head :unauthorized
+  end
+end
+```
 
 ### Question 5:
 We realized that calculating the pace and storing the value creates a problem if someone updates their distance or the time of their run.  Using Ruby, have the pace automatically updated if a user updates either the distance or the time of a given run.
@@ -398,22 +482,27 @@ I changed the `update` method in `run_records_controller.rb` to reflect the foll
     end
   end
   ```
-  
+
 The line `@run_record = RunRecord.find(params[:id])` selects the record indicated by the supplied `ID` value.
-  
+
 `params[:run_record][:pace] = (params[:run_record][:time].to_f/params[:run_record][:distance].to_f).round(2)` calculates a new key in `params` called `pace` from the values of `time` and `distance`.
-  
+
 Since the user is only updating `time` and `distance`, if the other inputs are nil, Rails will throw an error. Thus, I had to permit only the parameters that have been imputed/modified for this particular update using this `params.require(:run_record).permit(:distance, :time, :pace)`.
-  
+
 To test, I changed:
-  
+
   ```bash
   set ID=2
   set DISTANCE=3
   set TIME=26
   ```
-  
+
 on a record with `ID` equal to 2. The code ran appropriately.
+
+# Steve's Comments
+
+**See comments from Question 4**
+
 
 **---Your Answer End---**
 
@@ -434,7 +523,7 @@ First, I had Rails generate a new migration:
   rails generate migration add_finished_to_run_records finished:bool
   rake db:migrate
   ```
-  
+
 This creates a change in the original migration (adds a column) and allows up to update the schema to reflect the new change.
 
 Then, I had to alter the `run_records_params` method in `run_records_controller.rb` to add `:finished` to the list of permitted, but not required variables:
@@ -446,13 +535,13 @@ Then, I had to alter the `run_records_params` method in `run_records_controller.
     params.require(:run_record).permit(:date, :difficulty, :distance, :time, :notes, :finished)
   end
   ```
-  
+
 I also had to add `:finished` to be one of the update-able inputs:
 
   ```ruby
   def update
     ...
-    
+
     if @run_record.update(params.require(:run_record).permit(:distance, :time, :pace, :finished))
       render json: @run_record
     else
@@ -460,7 +549,7 @@ I also had to add `:finished` to be one of the update-able inputs:
     end
   end
   ```
-  
+
 After that, I had to modify the `run_record_serializer.rb` so that `finished` will show up in a POST/GET call:
 
   ```ruby
@@ -493,7 +582,7 @@ I generated a new migration using the following code:
   rails generate migration remove_notes_from_run_records notes:string
   rails db:migrate
   ```
-  
+
 Afterwards, I deleted the `:notes` symbol from `run_record_serializer.rb`.
 
 **---Your Answer End---**
@@ -515,7 +604,7 @@ I added the following to the `index` method in `run_records_controller.rb`:
   ...
   end
   ```
-  
+
 This filters out all the `@run_record` values where `:finished` is not `true`. Similiarly, I added the following to the `show` method in `run_records_controller.rb`:
 
   ```ruby
@@ -524,7 +613,7 @@ This filters out all the `@run_record` values where `:finished` is not `true`. S
   ...
   end
   ```
-  
+
 Though if an index is pointed to a record with `:finished` as `false`, then the `show` method returns a `nil` error. Is there a better way to do this?
 
 I tested this by making a few observations that were true for `finished` and a few that were false, and running the `scripts/get-run_records.rb` shell script to see the results.
@@ -546,7 +635,7 @@ I modified the `.where` methods found in Question #8 to read:
   ```ruby
   @run_records = @run_records.where(:finished => true).where("distance >= :distcomp AND pace < :pacecomp", distcomp: 5, pacecomp: 8)
   ```
-  
+
 in both the `index` and `show` methods. This filters the results again so that all results need to have a distance of greater than or equal to 5 miles and a pace of less than 8 minutes per mile. As per the last question, all results need to be completed runs.
 
 Testing this with a few different distances and pace times indicates that Rails is able to filter the results appropriately.
@@ -574,7 +663,7 @@ I added the following to the `index` method in `run_records_controller.rb`:
   ...
   end
   ```
-  
+
 This filters out all the `@run_record` values where `:finished` is not `true`. Similiarly, I added the following to the `show` method in `run_records_controller.rb`:
 
   ```ruby
@@ -583,7 +672,7 @@ This filters out all the `@run_record` values where `:finished` is not `true`. S
   ...
   end
   ```
-  
+
 Though if an index is pointed to a record with `:finished` as `false`, then the `show` method returns a `nil` error. Is there a better way to do this?
 
 I tested this by making a few observations that were true for `finished` and a few that were false, and running the `scripts/get-run_records.rb` shell script to see the results.
